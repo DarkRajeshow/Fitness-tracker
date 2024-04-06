@@ -46,26 +46,7 @@ const Title = styled.div`
 const Right = styled.div`
   flex: 1;
 `;
-const CardWrapper = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 100px;
-  @media (max-width: 600px) {
-    gap: 12px;
-  }
-`;
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding: 0px 16px;
-  gap: 22px;
-  padding: 0px 16px;
-  @media (max-width: 600px) {
-    gap: 12px;
-  }
-`;
+
 const SecTitle = styled.div`
   font-size: 22px;
   color: ${({ theme }) => theme.text_primary};
@@ -93,7 +74,7 @@ const Workouts = () => {
   }, [date]);
   return (
     <Container>
-      <Wrapper>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-[90%] m-auto">
         <Left>
           <Title>Select Date</Title>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -103,20 +84,28 @@ const Workouts = () => {
           </LocalizationProvider>
         </Left>
         <Right>
-          <Section>
-            <SecTitle>Todays Workout</SecTitle>
-            {loading ? (
-              <CircularProgress />
-            ) : (
-              <CardWrapper>
+          <SecTitle>Todays Workout</SecTitle>
+          {loading ? (
+            <CircularProgress />
+          ) : (
+            <div className="my-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" >
                 {todaysWorkouts.map((workout) => (
                   <WorkoutCard workout={workout} />
                 ))}
-              </CardWrapper>
-            )}
-          </Section>
+
+              </div>
+              {
+                todaysWorkouts.length === 0 && (
+                  <div className="flex items-center justify-center w-full sm:h-[350px] h-full bg-zinc-50 rounded-md">
+                    You haven't performed any exercises on the selected date.
+                  </div>
+                )
+              }
+            </div>
+          )}
         </Right>
-      </Wrapper>
+      </div>
     </Container>
   );
 };
