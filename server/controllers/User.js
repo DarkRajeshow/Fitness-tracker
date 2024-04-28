@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { createError } from "../error.js";
 import User from "../models/User.js";
 import Workout from "../models/Workout.js";
+import FoodIntake from "../models/FoodIntake.js";
 
 dotenv.config();
 
@@ -61,6 +62,8 @@ export const UserLogin = async (req, res, next) => {
     return next(error);
   }
 };
+
+
 
 export const getUserDashboard = async (req, res, next) => {
   try {
@@ -184,6 +187,129 @@ export const getUserDashboard = async (req, res, next) => {
   }
 };
 
+export const getUserDashboard2 = async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return next(createError(404, "User not found"));
+    }
+
+    const currentDateFormatted = new Date();
+    const startToday = new Date(
+      currentDateFormatted.getFullYear(),
+      currentDateFormatted.getMonth(),
+      currentDateFormatted.getDate()
+    );
+    const endToday = new Date(
+      currentDateFormatted.getFullYear(),
+      currentDateFormatted.getMonth(),
+      currentDateFormatted.getDate() + 1
+    );
+
+    // Calculate total calories gained
+    const totalCaloriesGained = await FoodIntake.aggregate([
+      { $match: { user: user._id, date: { $gte: startToday, $lt: endToday } } },
+      {
+        $group: {
+          _id: null,
+          totalCaloriesGained: { $sum: { $multiply: ["$quantity", "$caloriesPerUnit"] } },
+        },
+      },
+    ]);
+
+    // Fetch total number of diets
+    const totalDiets = await FoodIntake.countDocuments({
+      user: userId,
+      date: { $gte: startToday, $lt: endToday },
+    });
+
+    const avgCaloriesPerFoodItem =
+      totalCaloriesGained.length > 0
+        ? totalCaloriesGained[0].totalCaloriesGained / totalDiets
+        : 0;
+
+    // Fetch data for total weeks' calories gained
+    const weeks = [];
+    const caloriesGained = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(
+        currentDateFormatted.getTime() - i * 24 * 60 * 60 * 1000
+      );
+      weeks.push(`${date.getDate()}th`);
+
+      const startOfDay = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      );
+      const endOfDay = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate() + 1
+      );
+
+      const weekData = await FoodIntake.aggregate([
+        {
+          $match: {
+            user: user._id,
+            date: { $gte: startOfDay, $lt: endOfDay },
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+            totalCaloriesGained: { $sum: { $multiply: ["$quantity", "$caloriesPerUnit"] } },
+          },
+        },
+        {
+          $sort: { _id: 1 }, // Sort by date in ascending order
+        },
+      ]);
+
+      caloriesGained.push(
+        weekData[0]?.totalCaloriesGained ? weekData[0]?.totalCaloriesGained : 0
+      );
+    }
+
+    // Format data for the pie chart
+    const pieChartData = await FoodIntake.aggregate([
+      { $match: { user: user._id, date: { $gte: startToday, $lt: endToday } } },
+      {
+        $group: {
+          _id: "$foodName",
+          totalCaloriesGained: { $sum: { $multiply: ["$quantity", "$caloriesPerUnit"] } },
+        },
+      },
+    ]);
+
+    const formattedPieChartData = pieChartData.map((entry, index) => ({
+      id: index,
+      value: entry.totalCaloriesGained,
+      label: entry._id,
+    }));
+
+    // Format the data for the response
+    const response = {
+      totalCaloriesIntake: totalCaloriesGained.length > 0 ? totalCaloriesGained[0].totalCaloriesGained : 0,
+      avgCaloriesPerFoodItem: avgCaloriesPerFoodItem,
+      totalFoodItems: totalDiets,
+      totalWeeksCaloriesGained: {
+        weeks: weeks,
+        caloriesGained: caloriesGained,
+      },
+      pieChartData: formattedPieChartData,
+    };
+
+    return res.status(200).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+
 export const getWorkoutsByDate = async (req, res, next) => {
   try {
     const userId = req.user?.id;
@@ -218,6 +344,42 @@ export const getWorkoutsByDate = async (req, res, next) => {
   }
 };
 
+export const getDietsByDate = async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+    const user = await User.findById(userId);
+    let date = req.query.date ? new Date(req.query.date) : new Date();
+    if (!user) {
+      return next(createError(404, "User not found"));
+    }
+    const startOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    const endOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate() + 1
+    );
+
+    const todayDiets = await FoodIntake.find({
+      user: userId,
+      date: { $gte: startOfDay, $lt: endOfDay },
+    });
+
+    const totalCaloriesGained = todayDiets.reduce(
+      (total, diet) => total + (diet.quantity * diet.caloriesPerUnit),
+      0
+    );
+
+    return res.status(200).json({ todayDiets, totalCaloriesGained });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 export const addWorkout = async (req, res, next) => {
   try {
     const userId = req.user?.id;
@@ -232,6 +394,28 @@ export const addWorkout = async (req, res, next) => {
     await Workout.create({ ...workoutDetails, user: userId });
     return res.status(201).json({
       message: "Workout added successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const addDiet = async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+    let dietDetails = req.body;
+    if (!userId || !dietDetails) {
+      return res.status(400).json({
+        message: "Invalid request.",
+      });
+    }
+
+    // Create a new FoodIntake document and save it to the database
+    await FoodIntake.create({ ...dietDetails, user: userId });
+
+    return res.status(201).json({
+      message: "Diet added successfully",
     });
   } catch (err) {
     next(err);
@@ -260,6 +444,6 @@ const parseWorkoutLine = (parts) => {
 const calculateCaloriesBurnt = (workoutDetails) => {
   const durationInHours = parseInt(workoutDetails.duration) / 60;
   const weightInKg = parseInt(workoutDetails.weight);
-  const caloriesBurntPerMinute = 5; // Sample value, actual calculation may vary
+  const caloriesBurntPerMinute = 6.5; // Sample value, actual calculation may vary
   return durationInHours * caloriesBurntPerMinute * weightInKg;
 };
