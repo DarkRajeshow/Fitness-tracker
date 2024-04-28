@@ -1,6 +1,6 @@
 import React from "react";
 import styled from "styled-components";
-import { PieChart } from "@mui/x-charts/PieChart";
+import { BarChart } from "@mui/x-charts/BarChart";
 
 const Card = styled.div`
   flex: 1;
@@ -25,28 +25,21 @@ const Title = styled.div`
   }
 `;
 
-const CategoryChart = ({ data }) => {
+const WeeklyDietStatCard = ({ loading, data }) => {
   return (
     <Card>
-      <Title>Weekly Calories Burned</Title>
-      {(data?.pieChartData) && (data?.pieChartData.length > 0) ? <PieChart
-        series={[
-          {
-            data: data?.pieChartData,
-            innerRadius: 30,
-            outerRadius: 120,
-            paddingAngle: 5,
-            cornerRadius: 5,
-          },
-        ]}
-        height={300}
-      /> : (
-        <div id="emptyCategory" className="bg-gray-50 rounded-md">
-          <p>You haven't added any data today.</p>
-        </div>
+      <Title>Weekly Calories Gained</Title>
+      {data?.totalWeeksCaloriesGained && (
+        <BarChart
+          xAxis={[
+            { scaleType: "band", data: data?.totalWeeksCaloriesGained?.weeks },
+          ]}
+          series={[{ data: data?.totalWeeksCaloriesGained?.caloriesGained }]}
+          height={300}
+        />
       )}
     </Card>
   );
 };
 
-export default CategoryChart;
+export default WeeklyDietStatCard;

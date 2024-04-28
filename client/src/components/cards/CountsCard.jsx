@@ -1,3 +1,4 @@
+import { CircularProgress } from "@mui/material";
 import React from "react";
 import styled from "styled-components";
 
@@ -15,7 +16,7 @@ const Left = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   @media (max-width: 600px) {
     gap: 6px;
   }
@@ -43,21 +44,8 @@ const Unit = styled.div`
   font-size: 14px;
   margin-bottom: 8px;
 `;
-const Span = styled.div`
-  margin-bottom: 8px;
-  font-weight: 500;
-  font-size: 16px;
-  @media (max-width: 600px) {
-    font-size: 12px;
-  }
 
-  ${({ positive, theme }) =>
-    positive
-      ? `
-  color: ${theme.green};`
-      : `
-  color: ${theme.red};`}
-`;
+
 const Icon = styled.div`
   height: fit-content;
   padding: 8px;
@@ -80,16 +68,23 @@ const Desc = styled.div`
   }
 `;
 
-const CountsCard = ({ item, data }) => {
+const CountsCard = ({ loading, item, data }) => {
+  console.log(data);
   return (
-    <Card>
+    <Card className="h-[180px]">
       <Left>
         <Title>{item.name}</Title>
-        <Value>
-          {data && data[item.key].toFixed(2)}
-          <Unit>{item.unit}</Unit>
-          <Span positive>(+10%)</Span>
-        </Value>
+        <div className="flex h-14 gap-4 items-center">
+          {(loading || !data) && (
+            <CircularProgress 
+            className="h-8 w-8 text-blue-500"
+            />
+          )}
+          <Value>
+            {data && data[item.key].toFixed(2)}
+            <Unit>{item.unit}</Unit>
+          </Value>
+        </div>
         <Desc>{item.desc}</Desc>
       </Left>
       <Icon color={item.color} bg={item.lightColor}>

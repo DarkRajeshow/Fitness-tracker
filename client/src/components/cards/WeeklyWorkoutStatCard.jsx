@@ -25,7 +25,7 @@ const Title = styled.div`
   }
 `;
 
-const WeeklyStatCard = ({ data }) => {
+const WeeklyWorkoutStatCard = ({ loading, data }) => {
   return (
     <Card>
       <Title>Weekly Calories Burned</Title>
@@ -42,4 +42,4 @@ const WeeklyStatCard = ({ data }) => {
   );
 };
 
-export default WeeklyStatCard;
+export default WeeklyWorkoutStatCard;

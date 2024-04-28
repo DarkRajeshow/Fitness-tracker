@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
-import WorkoutCard from "../components/cards/WorkoutCard";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers";
-import { getWorkouts } from "../api";
+import { getDiets } from "../api";
 import { CircularProgress } from "@mui/material";
+import FoodCard from "../components/cards/FoodCard";
 
 const Container = styled.div`
   flex: 1;
@@ -15,6 +15,7 @@ const Container = styled.div`
   padding: 22px 0px;
   overflow-y: scroll;
 `;
+
 
 const Left = styled.div`
   flex: 0.2;
@@ -42,24 +43,25 @@ const SecTitle = styled.div`
   font-weight: 500;
 `;
 
-const Workouts = () => {
-  const [todaysWorkouts, setTodaysWorkouts] = useState([]);
+const Diets = () => {
+  const [todaysDiets, setTodaysDiets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState("");
 
   const getTodaysWorkout = useCallback(async () => {
     setLoading(true);
     const token = localStorage.getItem("fittrack-app-token");
-    await getWorkouts(token, date ? `?date=${date}` : "").then((res) => {
-      setTodaysWorkouts(res?.data?.todaysWorkouts);
+    await getDiets(token, date ? `?date=${date}` : "").then((res) => {
+      setTodaysDiets(res?.data?.todayDiets);
       console.log(res.data);
       setLoading(false);
     });
-  }, [date]);
+  }, [date])
 
   useEffect(() => {
     getTodaysWorkout();
   }, [date, getTodaysWorkout]);
+
   return (
     <Container>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-[90%] m-auto">
@@ -72,23 +74,22 @@ const Workouts = () => {
           </LocalizationProvider>
         </Left>
         <Right>
-          <SecTitle>Your Workout History.</SecTitle>
+          <SecTitle>Your Diet History.</SecTitle>
           {loading ? (
             <div className="flex bg-gray-50 rounded-2xl my-2 items-center justify-center sm:h-[350px] h-full w-full">
-              <CircularProgress/>
+              <CircularProgress />
             </div>
           ) : (
             <div className="my-2">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" >
-                {todaysWorkouts.map((workout) => (
-                  <WorkoutCard workout={workout} />
+                {todaysDiets.map((food) => (
+                  <FoodCard food={food} />
                 ))}
-
               </div>
               {
-                todaysWorkouts.length === 0 && (
+                todaysDiets.length === 0 && (
                   <div className="flex items-center justify-center w-full sm:h-[350px] h-full bg-zinc-50 rounded-md">
-                    It seems like you haven't added any workout for the selected day.
+                    It seems like you haven't added any food items for the selected day.
                   </div>
                 )
               }
@@ -100,4 +101,4 @@ const Workouts = () => {
   );
 };
 
-export default Workouts;
+export default Diets;
